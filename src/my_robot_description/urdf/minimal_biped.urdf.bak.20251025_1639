@@ -1,0 +1,260 @@
+<?xml version="1.0"?>
+<robot name="minimal_biped">
+
+  <!-- 物理パラメータのデフォルト（密度/見た目は適当でOK） -->
+  <material name="grey"><color rgba="0.7 0.7 0.7 1.0"/></material>
+
+  <!-- ===== 1) 胴体 ===== -->
+  <link name="torso">
+    <inertial>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <mass value="30"/>            <!-- 例: 5.0 -->
+      <inertia ixx="0.05" ixy="0" ixz="0" iyy="0.05" iyz="0" izz="0.05"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry><box size="0.1 0.1 0.3"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.15" rpy="0 0 0"/>
+      <geometry><box size="0.1 0.1 0.3"/></geometry>
+    </collision>
+  </link>
+
+  <link name="world"/>  <!-- ★ 明示的にworldリンクを定義する -->
+
+  <joint name="world_to_torso" type="fixed">
+    <parent link="world"/>
+    <child  link="torso"/>
+    <origin xyz="0 0 0.6" rpy="0 0 0"/>
+  </joint>
+
+  
+  <!-- 胴体を空間に置く（自由にしたいので固定しない。Gazeboで倒れてOK） -->
+  <!-- ※最初は world とのジョイント無しでOK。 -->
+
+  <!-- ===== 2) 右脚（hip_link → knee_link） ===== -->
+  <!-- 右股関節（torso - right_hip_link） -->
+  <joint name="right_hip_joint" type="revolute">
+    <parent link="torso"/>
+    <child  link="right_hip_link"/>
+    <origin xyz="0 -0.05 0.05" rpy="0 0 0"/>   <!-- Y負方向に右脚 -->
+    <axis xyz="0 1 0"/>                        <!-- ヒップはピッチ回り -->
+    <limit lower="-1.5"
+           upper="1.5"
+           effort="20" velocity="3.0"/>        <!-- 例: lower="-1.2" upper="1.2" -->
+  </joint>
+
+  <link name="right_hip_link">
+    <inertial>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <mass value="5.0"/>                      <!-- 例: 1.0 -->
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+    </collision>
+  </link>
+
+  <!-- 右膝（right_hip_link - right_knee_link） -->
+  <joint name="right_knee_joint" type="revolute">
+    <parent link="right_hip_link"/>
+    <child  link="right_knee_link"/>
+    <origin xyz="0 0 -0.2" rpy="0 0 0"/>       <!-- 大腿末端から接続 -->
+    <axis xyz="0 1 0"/>                        <!-- 膝もピッチ回り -->
+    <limit lower="0.0"
+           upper="2.0"
+           effort="20" velocity="3.0"/>        <!-- 例: lower="0.0" upper="2.0" (伸展0/屈曲正) -->
+  </joint>
+
+  <link name="right_knee_link">
+    <inertial>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <mass value="5.0"/>                      <!-- 例: 1.0 -->
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+    </collision>
+  </link>
+
+  <!-- 足裏は簡略化して“点”にする（接地のため小箱） -->
+  <joint name="right_ankle_fixed" type="fixed">
+    <parent link="right_knee_link"/>
+    <child  link="right_foot"/>
+    <origin xyz="0 0 -0.2" rpy="0 0 0"/>
+  </joint>
+
+  <link name="right_foot">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="3.0"/>                      <!-- 例: 0.3 -->
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.06 0.03 0.01"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.06 0.03 0.01"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== 3) 左脚（右脚をミラー。Yの符号を反転） ===== -->
+  <!-- ↓↓↓ ここは自分でコピペ＆編集（学習効果MAXゾーン） ↓↓↓ -->
+  <!-- _hip_joint, _link, left_knee_joint, left_knee_link, left_foot を
+       right側の定義をベースに作る。
+       ポイント：
+         * hipジョイントoriginのYは +0.05
+         * ジョイント名/リンク名は left_* に
+         * 質量や慣性は右と同じでOK
+  -->
+  <!-- ↑↑↑ ここまで自力で作成。わからなければ“答え合わせ”請求OK ↑↑↑ -->
+
+ <!-- ===== 2) 左脚（hip_link → knee_link） ===== -->
+  <!-- 左股関節（torso - left_hip_link） -->
+  <joint name="left_hip_joint" type="revolute">
+    <parent link="torso"/>
+    <child  link="left_hip_link"/>
+    <origin xyz="0 0.05 0.05" rpy="0 0 0"/>   <!-- Y負方向に右脚 -->
+    <axis xyz="0 1 0"/>                        <!-- ヒップはピッチ回り -->
+    <limit lower="-1.5"
+           upper="1.5"
+           effort="20" velocity="3.0"/>        <!-- 例: lower="-1.2" upper="1.2" -->
+  </joint>
+
+  <link name="left_hip_link">
+    <inertial>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <mass value="5.0"/>                      <!-- 例: 1.0 -->
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+    </collision>
+  </link>
+
+
+  <!-- 左膝（left_hip_link - left_knee_link） -->
+  <joint name="left_knee_joint" type="revolute">
+    <parent link="left_hip_link"/>
+    <child  link="left_knee_link"/>
+    <origin xyz="0 0 -0.2" rpy="0 0 0"/>       <!-- 大腿末端から接続 -->
+    <axis xyz="0 1 0"/>                        <!-- 膝もピッチ回り -->
+    <limit lower="0.0"
+           upper="2.0"
+           effort="20" velocity="3.0"/>        <!-- 例: lower="0.0" upper="2.0" (伸展0/屈曲正) -->
+  </joint>
+
+  <link name="left_knee_link">
+    <inertial>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <mass value="5.0"/>                      <!-- 例: 1.0 -->
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.03" length="0.2"/></geometry>
+    </collision>
+  </link>
+
+  <!-- 足裏は簡略化して“点”にする（接地のため小箱） -->
+  <joint name="left_ankle_fixed" type="fixed">
+    <parent link="left_knee_link"/>
+    <child  link="left_foot"/>
+    <origin xyz="0 0 -0.2" rpy="0 0 0"/>
+  </joint>
+
+  <link name="left_foot">
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="3.0"/>                      <!-- 例: 0.3 -->
+      <inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.06 0.03 0.01"/></geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.06 0.03 0.01"/></geometry>
+    </collision>
+  </link>
+
+  <!-- ===== 4) ros2_control（Gazebo Classic + Humble） ===== -->
+
+<ros2_control name="biped_system" type="system">
+  <hardware>
+    <plugin>gazebo_ros2_control/GazeboSystem</plugin>
+  </hardware>
+
+  <!-- 実在する“回転関節”だけを列挙。ankleはfixedなので除外  -->
+
+  <joint name="left_hip_joint">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+
+  <joint name="left_knee_joint">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+
+  <joint name="right_hip_joint">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+  
+  <joint name="right_knee_joint">
+    <command_interface name="position"/>
+    <state_interface name="position"/>
+    <state_interface name="velocity"/>
+  </joint>
+</ros2_control>
+
+<!-- Gazebo プラグイン設定（置き換え） -->
+<gazebo>
+  <plugin name="gazebo_ros2_control" filename="libgazebo_ros2_control.so">
+    <robot_namespace>/biped</robot_namespace>
+    <robot_param>robot_description</robot_param>
+    <robot_param_node>/biped/robot_state_publisher</robot_param_node>
+    <controller_manager_name>controller_manager</controller_manager_name>
+  </plugin>
+</gazebo>
+
+
+
+
+
+</robot>
+
