@@ -1,7 +1,11 @@
 # Minimal Biped (ROS 2 Humble + Gazebo Classic)
 
 ## 環境（版）
-- Ubuntu 22.04 / ROS 2 Humble / Gazebo Classic
+OS: Ubuntu (WSL2可)
+ROS: ROS 2 Humble
+Simulator: Gazebo Classic（Ignition/Garden記法は不使用）
+主要パッケージ: gazebo_ros, robot_state_publisher, ros2_control
+本リポ構成（参考・固定）：
 
 ## 配置ツリー（要点のみ）
 
